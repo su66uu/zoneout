@@ -16,3 +16,9 @@
 
 # Go workspace file
 go.work
+
+# Local test/build cache
+.cache/
+
+# Local Wish development host keys
+.ssh/

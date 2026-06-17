@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
+
+	"zoneout/internal/agentclient"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/log/v2"
@@ -27,6 +27,7 @@ const (
 	sshPort          = "23234"
 	agentForwardHost = "127.0.0.1"
 	agentForwardPort = uint32(27777)
+	agentBaseURL     = "http://127.0.0.1:27777"
 	agentHealthURL   = "http://127.0.0.1:27777/health"
 )
 
@@ -67,17 +68,16 @@ func main() {
 	}
 }
 
-func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
-	connected, message := checkAgentHealth(s.Context())
-	return model{
-		connected: connected,
-		message:   message,
-	}, []tea.ProgramOption{}
+type station struct {
+	Name string
+	URL  string
 }
 
 type model struct {
 	connected bool
 	message   string
+	stations  []station
+	client    *agentclient.Client
 }
 
 func (m model) Init() tea.Cmd {
@@ -115,6 +115,20 @@ func (m model) View() tea.View {
 	return tea.NewView(s.String())
 }
 
+func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
+	connected, message := checkAgentHealth(s.Context())
+	return model{
+		connected: connected,
+		message:   message,
+		stations: []station{
+			{
+				Name: "Code Radio",
+				URL:  "https://coderadio-admin-v2.freecodecamp.org/listen/coderadio/radio.mp3",
+			},
+		},
+	}, []tea.ProgramOption{}
+}
+
 func withReverseForwarding(forwardHandler *ssh.ForwardedTCPHandler) ssh.Option {
 	return func(s *ssh.Server) error {
 		s.ReversePortForwardingCallback = func(ctx ssh.Context, host string, port uint32) bool {
@@ -135,32 +149,11 @@ func withReverseForwarding(forwardHandler *ssh.ForwardedTCPHandler) ssh.Option {
 }
 
 func checkAgentHealth(ctx context.Context) (bool, string) {
-	reqCtx, cancel := context.WithTimeout(ctx, 1500*time.Millisecond)
-	defer cancel()
+	client := agentclient.New(agentBaseURL)
 
-	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, agentHealthURL, nil)
+	err := client.Health(ctx)
 	if err != nil {
-		return false, err.Error()
-	}
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return false, err.Error()
-	}
-	defer func() { _ = res.Body.Close() }()
-
-	body, err := io.ReadAll(io.LimitReader(res.Body, 128))
-	if err != nil {
-		return false, err.Error()
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return false, fmt.Sprintf("health check returned %s", res.Status)
-	}
-
-	text := strings.TrimSpace(string(body))
-	if text != "ok" {
-		return false, fmt.Sprintf("unexpected health response %q", text)
+		return false, "expected ok but got" + err.Error()
 	}
 
 	return true, "received ok from " + agentHealthURL

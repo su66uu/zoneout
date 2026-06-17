@@ -56,6 +56,20 @@ func (c *Client) Health(ctx context.Context) error {
 
 	return nil
 }
+
+func (c *Client) Status(ctx context.Context) (StatusResponse, error) {
+	var out StatusResponse
+	err := c.getJson(ctx, "/status", &out)
+
+	return out, err
+}
+
+func (c *Client) Play(ctx context.Context, streamURL string) (StatusResponse, error) {
+	var out StatusResponse
+	err := c.postJson(ctx, "/play", PlayRequest{StreamURL: streamURL}, &out)
+	return out, err
+}
+
 func (c *Client) doJson(req *http.Request, out any) error {
 	res, err := c.http.Do(req)
 	if err != nil {

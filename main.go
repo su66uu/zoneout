@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	btcommands "zoneout/btCommands"
 	"zoneout/internal/agentclient"
 
 	tea "charm.land/bubbletea/v2"
@@ -78,6 +79,8 @@ type model struct {
 	message   string
 	stations  []station
 	client    *agentclient.Client
+	status    agentclient.StatusResponse
+	cursor    int
 }
 
 func (m model) Init() tea.Cmd {
@@ -88,19 +91,45 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
+		case "p":
+			if m.connected && m.client != nil && len(m.stations) > 0 {
+				return m, btcommands.PlayCmd(m.client, m.stations[m.cursor].URL)
+			}
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		}
+	case btcommands.AgentStatusMsg:
+		if msg.Err != nil {
+			m.message = msg.Err.Error()
+			return m, nil
+		}
+		m.status = msg.Status
+		m.message = ""
 	}
 	return m, nil
 }
 
 func (m model) View() tea.View {
 	var s strings.Builder
-	s.WriteString("Zoneout Phase 1: Reverse Tunnel Check\n\n")
+	s.WriteString("Zoneout\n\n")
 
 	if m.connected {
-		s.WriteString("Agent status: connected through SSH reverse tunnel.\n")
+		fmt.Fprintf(&s, "Agent connected \n")
+		if m.status.State != "" {
+			fmt.Fprintf(&s, "Status: %s\n", m.status.State)
+		}
+		if m.status.Error != "" {
+			fmt.Fprintf(&s, "Error: %s\n", m.status.Error)
+		}
+
+		s.WriteString("\nStations\n")
+		for i, station := range m.stations {
+			cursor := " "
+			if i == m.cursor {
+				cursor = ">"
+			}
+			fmt.Fprintf(&s, "%s %s\n", cursor, station.Name)
+		}
 	} else {
 		s.WriteString("Agent status: not connected.\n\n")
 		s.WriteString("Start the local agent, then reconnect with:\n\n")
@@ -111,15 +140,17 @@ func (m model) View() tea.View {
 		fmt.Fprintf(&s, "\nDetail: %s\n", m.message)
 	}
 
-	s.WriteString("\nPress q to quit.\n")
+	s.WriteString("\n[p] play  [s] stop  [r] refresh  [q] quit\n")
 	return tea.NewView(s.String())
 }
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
-	connected, message := checkAgentHealth(s.Context())
+	client := agentclient.New(agentBaseURL)
+	connected, message := checkAgentHealth(s.Context(), client)
 	return model{
 		connected: connected,
 		message:   message,
+		client:    client,
 		stations: []station{
 			{
 				Name: "Code Radio",
@@ -148,9 +179,7 @@ func withReverseForwarding(forwardHandler *ssh.ForwardedTCPHandler) ssh.Option {
 	}
 }
 
-func checkAgentHealth(ctx context.Context) (bool, string) {
-	client := agentclient.New(agentBaseURL)
-
+func checkAgentHealth(ctx context.Context, client *agentclient.Client) (bool, string) {
 	err := client.Health(ctx)
 	if err != nil {
 		return false, "expected ok but got" + err.Error()

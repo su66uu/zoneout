@@ -1,7 +1,9 @@
 package agentclient
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,9 +21,9 @@ type PlayRequest struct {
 }
 
 type StatusResponse struct {
-	State string `json:"state"`
+	State     string `json:"state"`
 	StreamURL string `json:"stream_url,omitempty"`
-	Error string `json:"error,omitempty"`
+	Error     string `json:"error,omitempty"`
 }
 
 func New(baseURL string) *Client {
@@ -53,4 +55,46 @@ func (c *Client) Health(ctx context.Context) error {
 	}
 
 	return nil
+}
+func (c *Client) doJson(req *http.Request, out any) error {
+	res, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = res.Body.Close() }()
+
+	if res.StatusCode < 200 || res.StatusCode > 300 {
+		body, _ := io.ReadAll(io.LimitReader(res.Body, 512))
+		return fmt.Errorf("%s: %s", res.Status, strings.TrimSpace(string(body)))
+	}
+
+	return json.NewDecoder(res.Body).Decode(out)
+}
+
+func (c *Client) getJson(ctx context.Context, path string, out any) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
+	if err != nil {
+		return err
+	}
+
+	return c.doJson(req, out)
+}
+
+func (c *Client) postJson(ctx context.Context, path string, body any, out any) error {
+	var r io.Reader
+	if body != nil {
+		var buf bytes.Buffer
+		if err := json.NewEncoder(&buf).Encode(body); err != nil {
+			return err
+		}
+		r = &buf
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, r)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	return c.doJson(req, out)
 }

@@ -4,9 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"os/exec"
+	"strings"
 	"sync"
+	"time"
 
 	"zoneout/internal/playback"
 
@@ -46,6 +52,17 @@ type agentState struct {
 var state = &agentState{state: "idle"}
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "--ensure-running" {
+		if err := ensureRunning(); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	runServer()
+}
+
+func runServer() {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 
@@ -154,4 +171,46 @@ func currentStatus() statusResponse {
 		Error:     state.err,
 		State:     string(state.state),
 	}
+}
+
+func ensureRunning() error {
+	if healthOk() {
+		return nil
+	}
+
+	exe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(exe)
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if healthOk() {
+			return nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	return fmt.Errorf("agent did not become healthy")
+}
+
+func healthOk() bool {
+	client := http.Client{Timeout: 500 * time.Millisecond}
+
+	res, err := client.Get("http://" + agentAddr + "/health")
+	if err != nil {
+		 return false
+	}
+
+	defer func() { _ = res.Body.Close() }()
+	body, _ := io.ReadAll(io.LimitReader(res.Body, 32))
+	return res.StatusCode == http.StatusOK && strings.TrimSpace(string(body)) == "ok"
 }

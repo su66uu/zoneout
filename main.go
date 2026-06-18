@@ -27,6 +27,7 @@ import (
 	"charm.land/wish/v2/logging"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/ssh"
+	"github.com/charmbracelet/x/ansi"
 )
 
 const (
@@ -772,17 +773,10 @@ func truncate(s string, width int) string {
 	if width <= 0 {
 		return ""
 	}
-	if lipgloss.Width(s) <= width {
-		return s
-	}
-	runes := []rune(s)
-	if len(runes) <= width {
-		return s
-	}
 	if width <= 3 {
-		return string(runes[:width])
+		return ansi.Truncate(s, width, "")
 	}
-	return string(runes[:width-3]) + "..."
+	return ansi.Truncate(s, width, "...")
 }
 
 var (

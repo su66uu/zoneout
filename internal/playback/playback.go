@@ -29,7 +29,7 @@ func Play(ctx context.Context, streamURL string) error {
 		_ = res.Body.Close()
 	}()
 
-	if res.StatusCode < http.StatusOK || res.StatusCode >= http.StatusMultipleChoices {
+	if res.StatusCode < http.StatusOK || res.StatusCode > http.StatusMultipleChoices {
 		return fmt.Errorf("unable to process the stream: %s", res.Status)
 	}
 

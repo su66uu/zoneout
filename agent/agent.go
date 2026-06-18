@@ -22,7 +22,7 @@ type playRequest struct {
 
 type statusResponse struct {
 	State     string `json:"state"`
-	StreamUrl string `json:"stream_url,omitempty"`
+	StreamURL string `json:"stream_url,omitempty"`
 	Error     string `json:"error,omitempty"`
 }
 
@@ -150,7 +150,7 @@ func currentStatus() statusResponse {
 	defer state.mu.Unlock()
 
 	return statusResponse{
-		StreamUrl: state.streamURL,
+		StreamURL: state.streamURL,
 		Error:     state.err,
 		State:     string(state.state),
 	}

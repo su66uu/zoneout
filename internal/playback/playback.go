@@ -40,7 +40,6 @@ func Play(ctx context.Context, streamURL string) error {
 	}
 	log.Println("MP3 decode is ready")
 
-	log.Println("creating audio player")
 	playerManager, err := otoPlayerManager.EnsureContext(decoded.SampleRate())
 	if err != nil {
 		 return err
@@ -49,6 +48,7 @@ func Play(ctx context.Context, streamURL string) error {
 	if err != nil {
 		 return err
 	}
+	log.Println("audio player is ready")
 
 	player.Play()
 	log.Println("playback started")

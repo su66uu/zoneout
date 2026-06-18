@@ -99,6 +99,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.connected && m.client != nil && len(m.stations) > 0 {
 				return m, ztea.StopCmd(m.client)
 			}
+		case "r":
+			if m.connected && m.client != nil {
+				return m, ztea.StatusCmd(m.client)
+			}
 		case "ctrl+c", "q":
 			if m.connected && m.client != nil {
 				return m, tea.Sequence(

@@ -9,6 +9,15 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+type DelayedStatusMsg struct{}
+
+func DelayedStatusCmd(delay time.Duration) tea.Cmd {
+	return func() tea.Msg {
+		time.Sleep(delay)
+		return DelayedStatusMsg{}
+	}
+}
+
 type AgentStatusMsg struct {
 	Status agentclient.StatusResponse
 	Err    error

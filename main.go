@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	ztea "zoneout/internal/bubbletea"
 	"zoneout/internal/agentclient"
+	ztea "zoneout/internal/bubbletea"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/log/v2"
@@ -109,6 +109,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.status = msg.Status
 		m.message = ""
+
+		if msg.Status.State == "connecting" && m.client != nil {
+			return m, ztea.DelayedStatusCmd(300 * time.Millisecond)
+		}
+		return m, nil
+	case ztea.DelayedStatusMsg:
+		if m.connected && m.client != nil {
+			return m, ztea.StatusCmd(m.client)
+		}
+		return m, nil
 	}
 	return m, nil
 }

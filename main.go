@@ -100,6 +100,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, ztea.StopCmd(m.client)
 			}
 		case "ctrl+c", "q":
+			if m.connected && m.client != nil {
+				return m, tea.Sequence(
+					ztea.StopCmd(m.client),
+					tea.Quit,
+				)
+			}
 			return m, tea.Quit
 		}
 	case ztea.AgentStatusMsg:

@@ -25,6 +25,7 @@ import (
 	"charm.land/wish/v2/activeterm"
 	"charm.land/wish/v2/bubbletea"
 	"charm.land/wish/v2/logging"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/ssh"
 )
 
@@ -375,6 +376,9 @@ func (m model) renderFooter(width int) string {
 }
 
 func (m model) renderBody(width, height int) string {
+	if m.help.ShowAll {
+		return m.renderHelpPanel(width, height)
+	}
 	if !m.connected {
 		return m.renderSetup(width, height)
 	}
@@ -436,12 +440,24 @@ func (m model) renderSetup(width, height int) string {
 	if m.message != "" {
 		fmt.Fprintf(&s, "\n%s %s\n", warningStyle.Render("detail:"), m.message)
 	}
-	s.WriteString("\nPress r after connecting the agent, or q to leave.")
+	s.WriteString("\nPress r after connecting the agent, ? for manual setup, or q to leave.")
 
 	return panelStyle.
 		Width(max(30, width-2)).
 		Height(height).
 		Render(s.String())
+}
+
+func (m model) renderHelpPanel(width, height int) string {
+	markdown := connectedHelpMarkdown()
+	if !m.connected {
+		markdown = setupHelpMarkdown()
+	}
+	content := renderMarkdown(markdown, max(24, width-8))
+	return panelStyle.
+		Width(max(30, width-2)).
+		Height(height).
+		Render(lipgloss.NewStyle().MaxHeight(max(1, height-2)).Render(content))
 }
 
 func (m model) renderNowPlaying(width, height int) string {
@@ -582,6 +598,68 @@ func healthCmd(client *agentclient.Client) tea.Cmd {
 		connected, message := checkAgentHealth(ctx, client)
 		return agentHealthMsg{Connected: connected, Message: message}
 	}
+}
+
+func renderMarkdown(markdown string, width int) string {
+	renderer, err := glamour.NewTermRenderer(
+		glamour.WithStandardStyle("dark"),
+		glamour.WithWordWrap(max(24, width)),
+	)
+	if err != nil {
+		return markdown
+	}
+	out, err := renderer.Render(markdown)
+	if err != nil {
+		return markdown
+	}
+	return strings.TrimSpace(out)
+}
+
+func connectedHelpMarkdown() string {
+	return fmt.Sprintf(`# Zoneout controls
+
+Zoneout is an SSH music player for coding sessions. The TUI runs over SSH; audio plays through your local agent.
+
+## Keys
+
+| Key | Action |
+| --- | --- |
+| space / enter / p | Play selected station |
+| s | Stop playback |
+| r | Refresh agent status |
+| / | Filter stations |
+| ? | Toggle this help |
+| q / ctrl+c | Stop and quit |
+
+## Status
+
+- Agent: local control process reached through the reverse SSH tunnel.
+- Stream: current playback state reported by the agent.
+- Tunnel: server port %d forwards to your local agent.
+
+If playback fails, refresh first. If the agent is missing, reconnect with the reverse tunnel shown in setup.
+`, agentForwardPort)
+}
+
+func setupHelpMarkdown() string {
+	return fmt.Sprintf(`# Manual setup
+
+Zoneout needs a local audio agent because SSH cannot play sound on your machine by itself.
+
+Run the agent locally, then connect with a reverse tunnel:
+
+~~~sshconfig
+ssh -p %s -R 127.0.0.1:%d:127.0.0.1:17777 127.0.0.1
+~~~
+
+Expected checks:
+
+- The agent listens on "127.0.0.1:17777".
+- The SSH server accepts "127.0.0.1:%d" as a reverse forward.
+- Press "r" in Zoneout after the tunnel is available.
+
+For a permanent setup, add a managed SSH config block that starts the agent and opens the reverse tunnel before launching the TUI.
+`, sshPort, agentForwardPort, agentForwardPort)
 }
 
 func statusPollDelay(state string) (time.Duration, bool) {

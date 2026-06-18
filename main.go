@@ -42,6 +42,11 @@ const (
 	playbackStatePlaying    = "playing"
 )
 
+const (
+	connectingStatusPollDelay = 300 * time.Millisecond
+	playingStatusPollDelay    = 2 * time.Second
+)
+
 func main() {
 	forwardHandler := &ssh.ForwardedTCPHandler{}
 
@@ -247,9 +252,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.status = msg.Status
 		m.message = ""
 
-		if msg.Status.State == "connecting" && m.client != nil {
+		if delay, ok := statusPollDelay(msg.Status.State); ok && m.client != nil {
 			return m, tea.Batch(
-				ztea.DelayedStatusCmd(300*time.Millisecond),
+				ztea.DelayedStatusCmd(delay),
 				m.spinner.Tick,
 				animationTick(),
 			)
@@ -576,6 +581,17 @@ func healthCmd(client *agentclient.Client) tea.Cmd {
 		defer cancel()
 		connected, message := checkAgentHealth(ctx, client)
 		return agentHealthMsg{Connected: connected, Message: message}
+	}
+}
+
+func statusPollDelay(state string) (time.Duration, bool) {
+	switch state {
+	case playbackStateConnecting:
+		return connectingStatusPollDelay, true
+	case playbackStatePlaying:
+		return playingStatusPollDelay, true
+	default:
+		return 0, false
 	}
 }
 

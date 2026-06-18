@@ -164,6 +164,11 @@ func (k keyMap) FullHelp() [][]key.Binding {
 
 type frameMsg struct{}
 
+type agentHealthMsg struct {
+	Connected bool
+	Message   string
+}
+
 type model struct {
 	connected   bool
 	message     string
@@ -223,8 +228,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, ztea.StopCmd(m.client)
 			}
 		case key.Matches(msg, m.keys.Refresh):
-			if m.connected && m.client != nil {
-				return m, ztea.StatusCmd(m.client)
+			if m.client != nil {
+				if m.connected {
+					return m, ztea.StatusCmd(m.client)
+				}
+				return m, healthCmd(m.client)
 			}
 		case key.Matches(msg, m.keys.Help):
 			m.help.ShowAll = !m.help.ShowAll
@@ -248,6 +256,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case ztea.DelayedStatusMsg:
+		if m.connected && m.client != nil {
+			return m, ztea.StatusCmd(m.client)
+		}
+		return m, nil
+	case agentHealthMsg:
+		m.connected = msg.Connected
+		m.message = msg.Message
 		if m.connected && m.client != nil {
 			return m, ztea.StatusCmd(m.client)
 		}
@@ -553,6 +568,15 @@ func animationTick() tea.Cmd {
 	return tea.Tick(250*time.Millisecond, func(time.Time) tea.Msg {
 		return frameMsg{}
 	})
+}
+
+func healthCmd(client *agentclient.Client) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		connected, message := checkAgentHealth(ctx, client)
+		return agentHealthMsg{Connected: connected, Message: message}
+	}
 }
 
 func equalizer(frame int) string {

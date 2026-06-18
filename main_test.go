@@ -1,11 +1,15 @@
 package main
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
+
+	"zoneout/internal/agentclient"
+	ztea "zoneout/internal/bubbletea"
 )
 
 func TestRenderFitsCommonTerminalSizes(t *testing.T) {
@@ -104,5 +108,39 @@ func assertRenderFits(t *testing.T, rendered string, width, height int) {
 		if lineWidth := lipgloss.Width(line); lineWidth > width {
 			t.Fatalf("line %d width %d exceeds terminal width %d: %q", i+1, lineWidth, width, line)
 		}
+	}
+}
+
+func TestStatusErrorMarksAgentDisconnected(t *testing.T) {
+	m := newModel(nil, true, "")
+	m.status = agentclient.StatusResponse{
+		State:     playbackStatePlaying,
+		StreamURL: "https://example.com/radio.mp3",
+	}
+
+	updated, cmd := m.Update(ztea.AgentStatusMsg{Err: errors.New("connection refused")})
+	if cmd != nil {
+		t.Fatalf("unexpected command after status failure")
+	}
+
+	next := updated.(model)
+	if next.connected {
+		t.Fatalf("expected agent to be marked disconnected")
+	}
+	if next.status.State != "" || next.status.StreamURL != "" {
+		t.Fatalf("expected stale playback status to be cleared: %#v", next.status)
+	}
+	if !strings.Contains(next.message, "agent status failed: connection refused") {
+		t.Fatalf("expected status failure message, got %q", next.message)
+	}
+}
+
+func TestAgentHealthFailureMessage(t *testing.T) {
+	message := agentHealthErrorMessage(errors.New("connection refused"))
+	if !strings.Contains(message, "expected ok but got ") {
+		t.Fatalf("expected readable health failure message, got %q", message)
+	}
+	if strings.Contains(message, "gotunexpected") {
+		t.Fatalf("expected health failure message to include spacing, got %q", message)
 	}
 }

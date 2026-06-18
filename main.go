@@ -247,7 +247,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateStationList(msg)
 	case ztea.AgentStatusMsg:
 		if msg.Err != nil {
-			m.message = msg.Err.Error()
+			m.connected = false
+			m.status = agentclient.StatusResponse{}
+			m.message = "agent status failed: " + msg.Err.Error()
 			return m, nil
 		}
 		m.status = msg.Status
@@ -644,10 +646,14 @@ func withReverseForwarding(forwardHandler *ssh.ForwardedTCPHandler) ssh.Option {
 func checkAgentHealth(ctx context.Context, client *agentclient.Client) (bool, string) {
 	err := client.Health(ctx)
 	if err != nil {
-		return false, "expected ok but got" + err.Error()
+		return false, agentHealthErrorMessage(err)
 	}
 
 	return true, "received ok from " + agentHealthURL
+}
+
+func agentHealthErrorMessage(err error) string {
+	return "expected ok but got " + err.Error()
 }
 
 func animationTick() tea.Cmd {

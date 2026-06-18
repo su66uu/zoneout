@@ -344,6 +344,7 @@ func (m model) render() string {
 	footer := m.renderFooter(width)
 	bodyHeight := max(6, height-lipgloss.Height(header)-lipgloss.Height(footer)-2)
 	body := m.renderBody(width, bodyHeight)
+	body = clipBlockHeight(body, bodyHeight)
 
 	content := lipgloss.JoinVertical(lipgloss.Left, header, body, footer)
 	return lipgloss.NewStyle().
@@ -368,7 +369,11 @@ func (m model) renderHeader(width int) string {
 }
 
 func (m model) renderFooter(width int) string {
-	footerHelp := m.help.View(m.keys)
+	footerHelpModel := m.help
+	if footerHelpModel.ShowAll {
+		footerHelpModel.ShowAll = false
+	}
+	footerHelp := footerHelpModel.View(m.keys)
 	if m.stationList.SettingFilter() {
 		footerHelp = dimStyle.Render("esc clear filter") + "  " + footerHelp
 	}
@@ -376,6 +381,9 @@ func (m model) renderFooter(width int) string {
 }
 
 func (m model) renderBody(width, height int) string {
+	if width < 54 || height <= 10 {
+		return m.renderCompact(width, height)
+	}
 	if m.help.ShowAll {
 		return m.renderHelpPanel(width, height)
 	}
@@ -410,6 +418,42 @@ func (m model) renderWide(width, height int) string {
 	return lipgloss.JoinVertical(lipgloss.Left, top, stations)
 }
 
+func (m model) renderCompact(width, height int) string {
+	var s strings.Builder
+	if !m.connected {
+		s.WriteString(accentStyle.Render("first run setup"))
+		s.WriteString("\n")
+		fmt.Fprintf(&s, "ssh -p %s -R 127.0.0.1:%d:127.0.0.1:17777 127.0.0.1\n", sshPort, agentForwardPort)
+		s.WriteString("r refresh  ? help  q quit")
+		return panelStyle.
+			Width(max(30, width-2)).
+			Height(max(3, height-4)).
+			Render(s.String())
+	}
+
+	state := "idle"
+	if m.status.State != "" {
+		state = m.status.State
+	}
+	station, ok := m.selectedStation()
+	if !ok {
+		s.WriteString("no station selected")
+	} else {
+		s.WriteString(dimStyle.Render("now playing"))
+		s.WriteString("\n")
+		s.WriteString(titleStyle.Render(station.Name))
+	}
+	s.WriteString("\n")
+	fmt.Fprintf(&s, "state: %s", state)
+	if state == playbackStatePlaying {
+		fmt.Fprintf(&s, "\nsignal: %s", equalizer(m.frame))
+	}
+	return panelStyle.
+		Width(max(30, width-2)).
+		Height(max(3, height-4)).
+		Render(s.String())
+}
+
 func (m model) renderStacked(width, height int) string {
 	innerWidth := width - 2
 	nowHeight := 8
@@ -429,6 +473,17 @@ func (m model) renderStations(width, height int) string {
 	stationList := m.stationList
 	stationList.SetSize(max(24, width-2), max(4, height-2))
 	return panelStyle.Width(width).Height(height).Render(stationList.View())
+}
+
+func clipBlockHeight(block string, height int) string {
+	if height <= 0 {
+		return ""
+	}
+	lines := strings.Split(strings.TrimRight(block, "\n"), "\n")
+	if len(lines) <= height {
+		return block
+	}
+	return strings.Join(lines[:height], "\n")
 }
 
 func (m model) renderSetup(width, height int) string {
@@ -520,7 +575,11 @@ func (m model) renderDeskArt(width, height int) string {
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	client := agentclient.New(agentBaseURL)
 	connected, message := checkAgentHealth(s.Context(), client)
-	stations := []station{
+	return newModel(client, connected, message), []tea.ProgramOption{}
+}
+
+func defaultStations() []station {
+	return []station{
 		{
 			Name:    "Code Radio",
 			URL:     "https://coderadio-admin-v2.freecodecamp.org/listen/coderadio/radio.mp3",
@@ -530,6 +589,9 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 			Live:    true,
 		},
 	}
+}
+
+func newStationList(stations []station) list.Model {
 	items := make([]list.Item, len(stations))
 	for i, station := range stations {
 		items[i] = station
@@ -542,7 +604,10 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	stationList.DisableQuitKeybindings()
 	stationList.SetShowHelp(false)
 	stationList.SetStatusBarItemName("station", "stations")
+	return stationList
+}
 
+func newModel(client *agentclient.Client, connected bool, message string) model {
 	spin := spinner.New(spinner.WithSpinner(spinner.Meter), spinner.WithStyle(accentStyle))
 	helpModel := help.New()
 	helpModel.Styles.ShortKey = helpModel.Styles.ShortKey.Foreground(lipgloss.Color("#7DD3FC"))
@@ -552,9 +617,9 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		client:      client,
 		keys:        newKeyMap(),
 		help:        helpModel,
-		stationList: stationList,
+		stationList: newStationList(defaultStations()),
 		spinner:     spin,
-	}, []tea.ProgramOption{}
+	}
 }
 
 func withReverseForwarding(forwardHandler *ssh.ForwardedTCPHandler) ssh.Option {

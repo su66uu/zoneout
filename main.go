@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	ztea "zoneout/bubbletea"
+	ztea "zoneout/internal/bubbletea"
 	"zoneout/internal/agentclient"
 
 	tea "charm.land/bubbletea/v2"

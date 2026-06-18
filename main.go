@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	btcommands "zoneout/btCommands"
+	ztea "zoneout/bubbletea"
 	"zoneout/internal/agentclient"
 
 	tea "charm.land/bubbletea/v2"
@@ -93,12 +93,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "p":
 			if m.connected && m.client != nil && len(m.stations) > 0 {
-				return m, btcommands.PlayCmd(m.client, m.stations[m.cursor].URL)
+				return m, ztea.PlayCmd(m.client, m.stations[m.cursor].URL)
+			}
+		case "s":
+			if m.connected && m.client != nil && len(m.stations) > 0 {
+				return m, ztea.StopCmd(m.client)
 			}
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		}
-	case btcommands.AgentStatusMsg:
+	case ztea.AgentStatusMsg:
 		if msg.Err != nil {
 			m.message = msg.Err.Error()
 			return m, nil

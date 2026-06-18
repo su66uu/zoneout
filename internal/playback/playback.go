@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ebitengine/oto/v3"
 	"github.com/hajimehoshi/go-mp3"
+	"zoneout/internal/oto"
 )
+
+var otoPlayerManager = &oto.PlayerManager{}
 
 func Play(ctx context.Context, streamURL string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, streamURL, nil)
@@ -39,20 +41,14 @@ func Play(ctx context.Context, streamURL string) error {
 	log.Println("MP3 decode is ready")
 
 	log.Println("creating audio player")
-	op := &oto.NewContextOptions{
-		SampleRate:   decoded.SampleRate(),
-		ChannelCount: 2,
-		Format:       oto.FormatSignedInt16LE,
-	}
-	otoCtx, ready, err := oto.NewContext(op)
+	playerManager, err := otoPlayerManager.EnsureContext(decoded.SampleRate())
 	if err != nil {
-		return err
+		 return err
 	}
-	<-ready
-	log.Println("audio context is ready")
-
-	player := otoCtx.NewPlayer(decoded)
-	defer player.Pause()
+	player, err := playerManager.NewPlayer(decoded)
+	if err != nil {
+		 return err
+	}
 
 	player.Play()
 	log.Println("playback started")

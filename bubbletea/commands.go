@@ -1,4 +1,4 @@
-package btcommands
+package bubbletea
 
 import (
 	"context"
@@ -30,6 +30,16 @@ func PlayCmd(c *agentclient.Client, streamURL string) tea.Cmd {
 		defer cancel()
 
 		status, err := c.Play(ctx, streamURL)
+		return AgentStatusMsg{Status: status, Err: err}
+	}
+}
+
+func StopCmd(c *agentclient.Client) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		status, err := c.Stop(ctx)
 		return AgentStatusMsg{Status: status, Err: err}
 	}
 }

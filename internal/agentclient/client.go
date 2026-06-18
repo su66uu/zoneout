@@ -70,6 +70,12 @@ func (c *Client) Play(ctx context.Context, streamURL string) (StatusResponse, er
 	return out, err
 }
 
+func (c *Client) Stop(ctx context.Context) (StatusResponse, error) {
+	var out StatusResponse
+	err := c.postJson(ctx, "/stop", nil, &out)
+	return out, err
+}
+
 func (c *Client) doJson(req *http.Request, out any) error {
 	res, err := c.http.Do(req)
 	if err != nil {

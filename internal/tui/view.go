@@ -16,7 +16,7 @@ func (m Model) View() tea.View {
 	if m.width > 0 && m.height > 0 && (m.width < minWidth || m.height < minHeight) {
 		return tea.NewView(fmt.Sprintf(
 			"%s\n\nTerminal too small: %dx%d\nResize to at least %dx%d.\n\n[q] quit\n",
-			styles.brand.Render("Zoneout"),
+			m.renderHeader(),
 			m.width,
 			m.height,
 			minWidth,
@@ -25,7 +25,7 @@ func (m Model) View() tea.View {
 	}
 
 	var s strings.Builder
-	s.WriteString(styles.brand.Render("Zoneout") + "\n\n")
+	s.WriteString(m.renderHeader() + "\n\n")
 
 	if m.connected {
 		fmt.Fprintf(&s, "Agent connected \n")
@@ -58,6 +58,6 @@ func (m Model) View() tea.View {
 		fmt.Fprintf(&s, "\nDetail: %s\n", m.message)
 	}
 
-	s.WriteString("\n[p] play  [s] stop  [r] refresh  [q] quit\n")
+	s.WriteString("\n" + m.renderFooter() + "\n")
 	return tea.NewView(s.String())
 }

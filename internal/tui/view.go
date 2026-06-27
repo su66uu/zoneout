@@ -15,7 +15,8 @@ const (
 func (m Model) View() tea.View {
 	if m.width > 0 && m.height > 0 && (m.width < minWidth || m.height < minHeight) {
 		return tea.NewView(fmt.Sprintf(
-			"Zoneout\n\nTerminal too small: %dx%d\nResize to at least %dx%d.\n\n[q] quit\n",
+			"%s\n\nTerminal too small: %dx%d\nResize to at least %dx%d.\n\n[q] quit\n",
+			styles.brand.Render("Zoneout"),
 			m.width,
 			m.height,
 			minWidth,
@@ -24,7 +25,7 @@ func (m Model) View() tea.View {
 	}
 
 	var s strings.Builder
-	s.WriteString("Zoneout\n\n")
+	s.WriteString(styles.brand.Render("Zoneout") + "\n\n")
 
 	if m.connected {
 		fmt.Fprintf(&s, "Agent connected \n")
@@ -32,7 +33,7 @@ func (m Model) View() tea.View {
 			fmt.Fprintf(&s, "Status: %s\n", m.status.State)
 		}
 		if m.status.Error != "" {
-			fmt.Fprintf(&s, "Error: %s\n", m.status.Error)
+			fmt.Fprintf(&s, "Error: %s\n", styles.error.Render(m.status.Error))
 		}
 
 		s.WriteString("\nStations\n")
@@ -41,10 +42,14 @@ func (m Model) View() tea.View {
 			if i == m.cursor {
 				cursor = ">"
 			}
-			fmt.Fprintf(&s, "%s %s\n", cursor, station.Name)
+			row := fmt.Sprintf("%s %s", cursor, station.Name)
+			if i == m.cursor {
+				row = styles.selected.Render(row)
+			}
+			fmt.Fprintln(&s, row)
 		}
 	} else {
-		s.WriteString("Agent status: not connected.\n\n")
+		s.WriteString(styles.muted.Render("Agent status: not connected.") + "\n\n")
 		s.WriteString("Start the local agent, then reconnect with:\n\n")
 		fmt.Fprintf(&s, "  ssh -p %s -R 127.0.0.1:%d:127.0.0.1:17777 127.0.0.1\n", sshPort, agentForwardPort)
 	}

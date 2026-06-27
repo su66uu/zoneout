@@ -53,7 +53,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.notice = statusNotice(msg.Status.State)
 
 		if msg.Status.State == "connecting" && m.client != nil {
-			return m, ztea.DelayedStatusCmd(300 * time.Millisecond)
+			return m, tea.Batch(ztea.DelayedStatusCmd(300*time.Millisecond), tickCmd())
+		}
+		if m.isStreaming() {
+			return m, tickCmd()
 		}
 		return m, nil
 	case ztea.DelayedStatusMsg:
@@ -67,7 +70,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tickMsg:
 		m.tick++
-		return m, tickCmd()
+		if m.isStreaming() {
+			return m, tickCmd()
+		}
+		return m, nil
 	}
 	return m, nil
 }

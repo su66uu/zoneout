@@ -49,11 +49,10 @@ func NewModel(client *agentclient.Client, connected bool, message string) Model 
 }
 
 func (m Model) Init() tea.Cmd {
-	cmds := []tea.Cmd{tickCmd()}
 	if m.connected && m.client != nil {
-		cmds = append(cmds, ztea.StatusCmd(m.client))
+		return ztea.StatusCmd(m.client)
 	}
-	return tea.Batch(cmds...)
+	return nil
 }
 
 func tickCmd() tea.Cmd {

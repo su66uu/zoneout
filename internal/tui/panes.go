@@ -59,12 +59,23 @@ func (m Model) renderConsole() string {
 		if m.status.Error != "" {
 			fmt.Fprintf(&s, "Error: %s\n", styles.error.Render(m.status.Error))
 		}
+		m.writeConsoleMessages(&s)
 		return s.String()
 	}
 
 	s.WriteString(styles.muted.Render("Agent status: not connected.") + "\n\n")
 	s.WriteString("Start the local agent, then reconnect with:\n\n")
 	fmt.Fprintf(&s, "  ssh -p %s -R 127.0.0.1:%d:127.0.0.1:17777 127.0.0.1\n", sshPort, agentForwardPort)
+	m.writeConsoleMessages(&s)
 
 	return s.String()
+}
+
+func (m Model) writeConsoleMessages(s *strings.Builder) {
+	if m.message != "" {
+		fmt.Fprintf(s, "\nDetail: %s\n", m.message)
+	}
+	if m.notice != "" {
+		fmt.Fprintf(s, "\n> %s\n", m.notice)
+	}
 }

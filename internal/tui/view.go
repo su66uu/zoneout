@@ -26,16 +26,7 @@ func (m Model) View() tea.View {
 
 	var s strings.Builder
 	s.WriteString(m.renderHeader() + "\n\n")
-	s.WriteString(m.renderConsole())
-	s.WriteString("\n")
-	s.WriteString(m.renderStations())
-
-	if m.message != "" {
-		fmt.Fprintf(&s, "\nDetail: %s\n", m.message)
-	}
-	if m.notice != "" {
-		fmt.Fprintf(&s, "\n> %s\n", m.notice)
-	}
+	s.WriteString(m.renderContent())
 
 	s.WriteString("\n" + m.renderFooter() + "\n")
 	return tea.NewView(s.String())

@@ -7,8 +7,24 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+const (
+	minWidth  = 80
+	minHeight = 24
+)
+
 func (m Model) View() tea.View {
 	var s strings.Builder
+
+	if m.width > 0 && m.height > 0 && (m.width < minWidth || m.height < minHeight) {
+		return tea.NewView(fmt.Sprintf(
+			"Zoneout\n\nTerminal too small: %dx%d\nResize to at least %dx%d.\n\n[q] quit\n",
+			m.width,
+			m.height,
+			minWidth,
+			minHeight,
+		))
+	}
+
 	s.WriteString("Zoneout\n\n")
 
 	if m.connected {

@@ -62,6 +62,11 @@ func (m Model) renderConsole() string {
 			fmt.Fprintf(&s, "Station: %s\n", station.Name)
 		}
 		if m.isStreaming() {
+			if state == "connecting" {
+				fmt.Fprintf(&s, "Signal: connecting to %s\n", station.Name)
+			} else {
+				fmt.Fprintf(&s, "Signal: transmitting %s\n", station.Name)
+			}
 			if station.Title != "" {
 				fmt.Fprintf(&s, "Track: %s\n", station.Title)
 			}

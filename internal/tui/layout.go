@@ -22,7 +22,7 @@ func (m Model) renderHeader() string {
 }
 
 func (m Model) renderFooter() string {
-	left := "[p] play  [s] stop  [r] refresh  [q] quit"
+	left := "zoneout  [p] play  [s] stop  [r] refresh  [q] quit"
 	right := "Uptime: " + formatDuration(time.Since(m.startedAt))
 
 	if m.width <= 0 || len(left)+len(right)+1 >= m.width {

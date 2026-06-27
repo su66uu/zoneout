@@ -7,6 +7,7 @@ var styles = struct {
 	muted    lipgloss.Style
 	selected lipgloss.Style
 	error    lipgloss.Style
+	success  lipgloss.Style
 }{
 	brand: lipgloss.NewStyle().
 		Foreground(lipgloss.Color("42")).
@@ -21,5 +22,9 @@ var styles = struct {
 
 	error: lipgloss.NewStyle().
 		Foreground(lipgloss.Color("196")).
+		Bold(true),
+
+	success: lipgloss.NewStyle().
+		Foreground(lipgloss.Color("42")).
 		Bold(true),
 }

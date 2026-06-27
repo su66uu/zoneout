@@ -23,7 +23,7 @@ func (m Model) renderFooter() string {
 
 func formatDuration(d time.Duration) string {
 	total := int(d.Seconds())
-	hours := total / 36000
+	hours := total / 3600
 	minutes := (total % 3600) / 60
 	seconds := total % 60
 	return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)

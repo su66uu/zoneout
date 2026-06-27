@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"zoneout/internal/agentclient"
+	ztea "zoneout/internal/bubbletea"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -111,7 +112,6 @@ func TestWideViewIncludesStationAndConsolePanes(t *testing.T) {
 	model := NewModel(nil, true, "")
 	model.width = 120
 	model.height = 30
-	model.tick = 3
 	model.status = agentclient.StatusResponse{
 		State:     "playing",
 		StreamURL: model.stations[0].URL,
@@ -168,23 +168,33 @@ func TestPanelLinesTruncateLongText(t *testing.T) {
 	}
 }
 
-func TestTickReschedulesOnlyWhileStreaming(t *testing.T) {
+func TestFullHeightViewKeepsHeaderInFirstLine(t *testing.T) {
 	model := NewModel(nil, true, "")
-	model.status = agentclient.StatusResponse{State: "playing"}
-
-	updated, cmd := model.Update(tickMsg(time.Now()))
-	model = updated.(Model)
-	if model.tick != 1 {
-		t.Fatalf("tick = %d, want 1", model.tick)
-	}
-	if cmd == nil {
-		t.Fatal("playing tick returned nil command, want next tick")
+	model.width = 120
+	model.height = 30
+	model.status = agentclient.StatusResponse{
+		State:     "playing",
+		StreamURL: model.stations[0].URL,
 	}
 
-	model.status = agentclient.StatusResponse{State: "idle"}
-	_, cmd = model.Update(tickMsg(time.Now()))
+	view := cleanView(model)
+	lines := strings.Split(view, "\n")
+	if got := len(lines); got > model.height {
+		t.Fatalf("view rendered %d lines, want <= %d:\n%s", got, model.height, view)
+	}
+	if !strings.Contains(lines[0], "ZONEOUT") {
+		t.Fatalf("first line = %q, want app header", lines[0])
+	}
+}
+
+func TestPlayingStatusDoesNotScheduleBackgroundTick(t *testing.T) {
+	model := NewModel(nil, true, "")
+
+	_, cmd := model.Update(ztea.AgentStatusMsg{
+		Status: agentclient.StatusResponse{State: "playing"},
+	})
 	if cmd != nil {
-		t.Fatal("idle tick returned a command, want nil")
+		t.Fatal("playing status scheduled a command, want nil to avoid periodic redraw")
 	}
 }
 

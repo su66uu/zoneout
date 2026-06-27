@@ -141,14 +141,17 @@ func (m Model) selectedStation() Station {
 }
 
 func (m Model) equalizer() string {
-	levels := []int{1, 3, 2, 4, 2, 5, 3, 4}
+	levels := []int{2, 4, 3, 5, 3, 4, 2, 5}
+	if m.status.State == "connecting" {
+		levels = []int{1, 2, 1, 3, 1, 2, 1, 3}
+	}
+
 	var bars strings.Builder
 	for i, level := range levels {
-		shifted := ((level + m.tick + i) % 5) + 1
 		if i > 0 {
 			bars.WriteString(" ")
 		}
-		bars.WriteString(strings.Repeat("|", shifted))
+		bars.WriteString(strings.Repeat("|", level))
 	}
 	return "EQ: " + styles.success.Render(bars.String())
 }
@@ -158,13 +161,16 @@ func (m Model) progressBar(width int) string {
 		width = 4
 	}
 
-	filled := 1
-	if m.status.State == "playing" {
-		filled = (m.tick % width) + 1
-	} else if m.status.State == "connecting" {
-		filled = ((m.tick % width) / 2) + 1
+	filled := width / 3
+	if m.status.State == "connecting" {
+		filled = width / 5
+	} else if m.status.State == "playing" {
+		filled = (width * 2) / 3
 	}
 
+	if filled < 1 {
+		filled = 1
+	}
 	if filled > width {
 		filled = width
 	}

@@ -28,6 +28,6 @@ func (m Model) View() tea.View {
 	s.WriteString(m.renderHeader() + "\n\n")
 	s.WriteString(m.renderContent())
 
-	s.WriteString("\n" + m.renderFooter() + "\n")
+	s.WriteString("\n" + m.renderFooter())
 	return tea.NewView(s.String())
 }

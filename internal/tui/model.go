@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"zoneout/internal/agentclient"
+	ztea "zoneout/internal/bubbletea"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -30,6 +31,8 @@ type Model struct {
 	tick      int
 }
 
+type tickMsg time.Time
+
 const (
 	sshPort          = "23234"
 	agentForwardPort = uint32(27777)
@@ -46,7 +49,17 @@ func NewModel(client *agentclient.Client, connected bool, message string) Model 
 }
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	cmds := []tea.Cmd{tickCmd()}
+	if m.connected && m.client != nil {
+		cmds = append(cmds, ztea.StatusCmd(m.client))
+	}
+	return tea.Batch(cmds...)
+}
+
+func tickCmd() tea.Cmd {
+	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
 }
 
 func defaultStations() []Station {

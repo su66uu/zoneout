@@ -13,8 +13,6 @@ const (
 )
 
 func (m Model) View() tea.View {
-	var s strings.Builder
-
 	if m.width > 0 && m.height > 0 && (m.width < minWidth || m.height < minHeight) {
 		return tea.NewView(fmt.Sprintf(
 			"Zoneout\n\nTerminal too small: %dx%d\nResize to at least %dx%d.\n\n[q] quit\n",
@@ -25,6 +23,7 @@ func (m Model) View() tea.View {
 		))
 	}
 
+	var s strings.Builder
 	s.WriteString("Zoneout\n\n")
 
 	if m.connected {

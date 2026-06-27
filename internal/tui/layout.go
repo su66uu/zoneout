@@ -1,9 +1,7 @@
 package tui
 
 import (
-	"fmt"
 	"strings"
-	"time"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -22,14 +20,13 @@ func (m Model) renderHeader() string {
 }
 
 func (m Model) renderFooter() string {
-	left := "zoneout  [p] play  [s] stop  [r] refresh  [q] quit"
-	right := "Uptime: " + formatDuration(time.Since(m.startedAt))
-
-	if m.width <= 0 || len(left)+len(right)+1 >= m.width {
-		return left
-	}
-
-	return left + strings.Repeat(" ", m.width-len(left)-len(right)) + right
+	return strings.Join([]string{
+		"zoneout",
+		styles.shortcut.Render("[p]") + " play",
+		styles.shortcut.Render("[s]") + " stop",
+		styles.shortcut.Render("[r]") + " refresh",
+		styles.shortcut.Render("[q]") + " quit",
+	}, "  ")
 }
 
 func (m Model) renderContent() string {
@@ -122,12 +119,4 @@ func panelLines(title string, body string, width int, height int) []string {
 		lines = append(lines, "")
 	}
 	return lines
-}
-
-func formatDuration(d time.Duration) string {
-	total := int(d.Seconds())
-	hours := total / 3600
-	minutes := (total % 3600) / 60
-	seconds := total % 60
-	return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
 }

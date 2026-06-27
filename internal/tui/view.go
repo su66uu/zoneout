@@ -14,7 +14,7 @@ const (
 
 func (m Model) View() tea.View {
 	if m.width > 0 && m.height > 0 && (m.width < minWidth || m.height < minHeight) {
-		return tea.NewView(fmt.Sprintf(
+		return newView(fmt.Sprintf(
 			"%s\n\nTerminal too small: %dx%d\nResize to at least %dx%d.\n\n[q] quit\n",
 			m.renderHeader(),
 			m.width,
@@ -29,5 +29,11 @@ func (m Model) View() tea.View {
 	s.WriteString(m.renderContent())
 
 	s.WriteString("\n" + m.renderFooter())
-	return tea.NewView(s.String())
+	return newView(s.String())
+}
+
+func newView(content string) tea.View {
+	view := tea.NewView(content)
+	view.AltScreen = true
+	return view
 }

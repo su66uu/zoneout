@@ -3,7 +3,6 @@ package tui
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"zoneout/internal/agentclient"
 	ztea "zoneout/internal/bubbletea"
@@ -11,13 +10,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 )
-
-func TestFormatDuration(t *testing.T) {
-	got := formatDuration(2*time.Hour + 3*time.Minute + 4*time.Second)
-	if got != "02:03:04" {
-		t.Fatalf("formatDuration() = %q, want %q", got, "02:03:04")
-	}
-}
 
 func TestWindowSizeRendersSmallTerminalFallback(t *testing.T) {
 	model := NewModel(nil, false, "")
@@ -40,6 +32,40 @@ func TestMinimumViewportRendersBothPanesAndFooter(t *testing.T) {
 		if !strings.Contains(view, want) {
 			t.Fatalf("minimum viewport did not contain %q:\n%s", want, view)
 		}
+	}
+}
+
+func TestViewsUseAlternateScreen(t *testing.T) {
+	model := NewModel(nil, true, "")
+	model.width = 120
+	model.height = 30
+
+	if view := model.View(); !view.AltScreen {
+		t.Fatal("main view did not enable alternate screen")
+	}
+
+	model.width = 79
+	model.height = 20
+	if view := model.View(); !view.AltScreen {
+		t.Fatal("small terminal view did not enable alternate screen")
+	}
+}
+
+func TestFooterOmitsUptimeAndStylesShortcuts(t *testing.T) {
+	model := NewModel(nil, true, "")
+
+	footer := model.renderFooter()
+	cleanFooter := ansi.Strip(footer)
+	if strings.Contains(cleanFooter, "Uptime") {
+		t.Fatalf("footer included uptime: %q", cleanFooter)
+	}
+	for _, want := range []string{"[p] play", "[s] stop", "[r] refresh", "[q] quit"} {
+		if !strings.Contains(cleanFooter, want) {
+			t.Fatalf("footer did not contain %q: %q", want, cleanFooter)
+		}
+	}
+	if !strings.Contains(footer, styles.shortcut.Render("[p]")) {
+		t.Fatalf("footer did not style shortcut token: %q", footer)
 	}
 }
 

@@ -28,10 +28,7 @@ type Model struct {
 	startedAt time.Time
 	width     int
 	height    int
-	tick      int
 }
-
-type tickMsg time.Time
 
 const (
 	sshPort          = "23234"
@@ -53,12 +50,6 @@ func (m Model) Init() tea.Cmd {
 		return ztea.StatusCmd(m.client)
 	}
 	return nil
-}
-
-func tickCmd() tea.Cmd {
-	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
-		return tickMsg(t)
-	})
 }
 
 func defaultStations() []Station {

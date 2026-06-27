@@ -9,13 +9,17 @@ import (
 )
 
 type Station struct {
-	Name string
-	URL  string
+	Name    string
+	URL     string
+	Title   string
+	Artist  string
+	Enabled bool
 }
 
 type Model struct {
 	connected bool
 	message   string
+	notice    string
 	stations  []Station
 	client    *agentclient.Client
 	status    agentclient.StatusResponse
@@ -37,15 +41,47 @@ func NewModel(client *agentclient.Client, connected bool, message string) Model 
 		message:   message,
 		client:    client,
 		startedAt: time.Now(),
-		stations: []Station{
-			{
-				Name: "Code Radio",
-				URL:  "https://coderadio-admin-v2.freecodecamp.org/listen/coderadio/radio.mp3",
-			},
-		},
+		stations:  defaultStations(),
 	}
 }
 
 func (m Model) Init() tea.Cmd {
 	return nil
+}
+
+func defaultStations() []Station {
+	return []Station{
+		{
+			Name:    "Code Radio",
+			URL:     "https://coderadio-admin-v2.freecodecamp.org/listen/coderadio/radio.mp3",
+			Title:   "Code Radio",
+			Artist:  "freeCodeCamp",
+			Enabled: true,
+		},
+		{
+			Name:   "Synthwave Grid",
+			Title:  "Neon Compile",
+			Artist: "Zoneout Preview",
+		},
+		{
+			Name:   "Night Drive 24/7",
+			Title:  "Late Build Lane",
+			Artist: "Zoneout Preview",
+		},
+		{
+			Name:   "Minimalist Focus",
+			Title:  "Quiet Loop",
+			Artist: "Zoneout Preview",
+		},
+		{
+			Name:   "Deep Techno Lab",
+			Title:  "Runtime Pressure",
+			Artist: "Zoneout Preview",
+		},
+		{
+			Name:   "Ambient Void",
+			Title:  "Blank Terminal",
+			Artist: "Zoneout Preview",
+		},
+	}
 }

@@ -19,18 +19,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < len(m.stations)-1 {
 				m.cursor++
 			}
-		case "p":
-			if m.connected && m.client != nil && len(m.stations) > 0 {
-				return m, ztea.PlayCmd(m.client, m.stations[m.cursor].URL)
-			}
+		case "enter", "p":
+			return m.playSelected()
 		case "s":
-			if m.connected && m.client != nil && len(m.stations) > 0 {
+			if m.connected && m.client != nil {
+				m.notice = "stop requested"
 				return m, ztea.StopCmd(m.client)
 			}
+			m.notice = "agent unavailable"
 		case "r":
 			if m.connected && m.client != nil {
+				m.notice = "refresh requested"
 				return m, ztea.StatusCmd(m.client)
 			}
+			m.notice = "agent unavailable"
 		case "ctrl+c", "q":
 			if m.connected && m.client != nil {
 				return m, tea.Sequence(
@@ -43,10 +45,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ztea.AgentStatusMsg:
 		if msg.Err != nil {
 			m.message = msg.Err.Error()
+			m.notice = "agent error"
 			return m, nil
 		}
 		m.status = msg.Status
 		m.message = ""
+		m.notice = statusNotice(msg.Status.State)
 
 		if msg.Status.State == "connecting" && m.client != nil {
 			return m, ztea.DelayedStatusCmd(300 * time.Millisecond)
@@ -63,4 +67,40 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	return m, nil
+}
+
+func (m Model) playSelected() (tea.Model, tea.Cmd) {
+	if !m.connected || m.client == nil {
+		m.notice = "agent unavailable"
+		return m, nil
+	}
+
+	if len(m.stations) == 0 {
+		m.notice = "no stations available"
+		return m, nil
+	}
+
+	station := m.stations[m.cursor]
+	if !station.Enabled || station.URL == "" {
+		m.notice = "station unavailable in this build"
+		return m, nil
+	}
+
+	m.notice = "play requested"
+	return m, ztea.PlayCmd(m.client, station.URL)
+}
+
+func statusNotice(state string) string {
+	switch state {
+	case "connecting":
+		return "connecting"
+	case "playing":
+		return "transmitting"
+	case "idle":
+		return "awaiting command"
+	case "error":
+		return "playback error"
+	default:
+		return ""
+	}
 }

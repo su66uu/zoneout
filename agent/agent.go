@@ -207,7 +207,7 @@ func healthOk() bool {
 
 	res, err := client.Get("http://" + agentAddr + "/health")
 	if err != nil {
-		 return false
+		return false
 	}
 
 	defer func() { _ = res.Body.Close() }()

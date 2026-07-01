@@ -2,6 +2,7 @@ package tui
 
 import (
 	"time"
+
 	ztea "zoneout/internal/bubbletea"
 
 	tea "charm.land/bubbletea/v2"
@@ -52,7 +53,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.message = ""
 		m.notice = statusNotice(msg.Status.State)
 
-		if msg.Status.State == "connecting" && m.client != nil {
+		if m.client != nil && (msg.Status.State == "connecting" || msg.Status.State == "playing") {
 			return m, ztea.DelayedStatusCmd(300 * time.Millisecond)
 		}
 		return m, nil

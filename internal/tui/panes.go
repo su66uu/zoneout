@@ -142,7 +142,10 @@ func (m Model) selectedStation() Station {
 
 func (m Model) renderEqualizerLevels(levels []uint8) string {
 	if len(levels) == 0 {
-		return ""
+		levels = []uint8{0, 0, 0, 0, 0, 0, 0, 0}
+		if m.status.State == "connecting" {
+			levels = []uint8{1, 2, 1, 3, 1, 2, 1, 3}
+		}
 	}
 
 	blocks := []string{" ", "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"}
@@ -160,7 +163,7 @@ func (m Model) renderEqualizerLevels(levels []uint8) string {
 		b.WriteString(blocks[level])
 	}
 
-	return b.String()
+	return "EQ: " + styles.success.Render(b.String())
 }
 
 func (m Model) progressBar(width int) string {

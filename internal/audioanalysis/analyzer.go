@@ -6,9 +6,8 @@ import (
 	"sync"
 )
 
-
 type Analyzer struct {
-	mu sync.RWMutex
+	mu     sync.RWMutex
 	levels []uint8
 }
 
@@ -21,8 +20,8 @@ func NewAnalyzer(barCount int) *Analyzer {
 func (a *Analyzer) ObservePCM16StereoLE(p []byte) {
 	const (
 		frameSize = 4
-		maxInt16 = 32768.0
-		maxLevel = 8
+		maxInt16  = 32768.0
+		maxLevel  = 8
 	)
 
 	if len(a.levels) == 0 {
@@ -40,13 +39,13 @@ func (a *Analyzer) ObservePCM16StereoLE(p []byte) {
 		left := int16(binary.LittleEndian.Uint16(p[i : i+2]))
 		right := int16(binary.LittleEndian.Uint16(p[i+2 : i+4]))
 
-		mono := (float64(left) + float64(right) / 2)
+		mono := (float64(left) + float64(right)) / 2
 		normalized := mono / maxInt16
 		sumSquares += normalized * normalized
 	}
 
 	rms := math.Sqrt(sumSquares / float64(frameCount))
-	level := min(uint8(math.Round(rms * maxLevel)), maxLevel)
+	level := min(uint8(math.Round(rms*maxLevel)), maxLevel)
 
 	a.mu.Lock()
 	defer a.mu.Unlock()

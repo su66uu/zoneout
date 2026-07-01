@@ -28,9 +28,10 @@ type playRequest struct {
 }
 
 type statusResponse struct {
-	State     string `json:"state"`
-	StreamURL string `json:"stream_url,omitempty"`
-	Error     string `json:"error,omitempty"`
+	State      string  `json:"state"`
+	StreamURL  string  `json:"stream_url,omitempty"`
+	Error      string  `json:"error,omitempty"`
+	Visualizer []uint8 `json:"visualizer,omitempty"`
 }
 
 type playbackState string
@@ -48,9 +49,11 @@ type agentState struct {
 	streamURL string
 	err       string
 	cancel    context.CancelFunc
+	analyzer *audioanalysis.Analyzer
 }
 
 var state = &agentState{state: "idle"}
+
 const barCount = 8
 
 func main() {
@@ -109,6 +112,7 @@ func playMusicHandler(w http.ResponseWriter, r *http.Request) {
 	state.streamURL = reqBody.StreamURL
 	state.err = ""
 	state.cancel = cancel
+	state.analyzer = analyzer
 	state.mu.Unlock()
 
 	go func() {
@@ -116,7 +120,7 @@ func playMusicHandler(w http.ResponseWriter, r *http.Request) {
 		state.state = statePlaying
 		state.mu.Unlock()
 
-		err := playback.Play(ctx, reqBody.StreamURL)
+		err := playback.Play(ctx, reqBody.StreamURL, analyzer)
 
 		state.mu.Lock()
 		defer state.mu.Unlock()
@@ -170,11 +174,17 @@ func currentStatus() statusResponse {
 	state.mu.Lock()
 	defer state.mu.Unlock()
 
-	return statusResponse{
+	resp := statusResponse{
 		StreamURL: state.streamURL,
 		Error:     state.err,
 		State:     string(state.state),
 	}
+
+	if state.analyzer != nil {
+		resp.Visualizer = state.analyzer.Levels()
+	}
+
+	return resp
 }
 
 func ensureRunning() error {

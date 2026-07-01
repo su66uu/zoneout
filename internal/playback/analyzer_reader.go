@@ -26,7 +26,7 @@ func newAnalyzerReader(src io.Reader, analyzer *audioanalysis.Analyzer) io.Reade
 func (r *AnalyzerReader) Read(p []byte) (int, error) {
 	n, err := r.src.Read(p)
 	if n > 0 {
-		r.analyzer.ObservePCM16StereoLE(p)
+		r.analyzer.ObservePCM16StereoLE(p[:n])
 	}
 
 	return n, err

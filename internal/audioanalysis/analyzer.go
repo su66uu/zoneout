@@ -21,7 +21,7 @@ func NewAnalyzer(barCount int) *Analyzer {
 func (a *Analyzer) ObservePCM16StereoLE(p []byte) {
 	const (
 		frameSize = 4
-		maxInt6 = 32768.0
+		maxInt16 = 32768.0
 		maxLevel = 8
 	)
 
@@ -41,15 +41,12 @@ func (a *Analyzer) ObservePCM16StereoLE(p []byte) {
 		right := int16(binary.LittleEndian.Uint16(p[i+2 : i+4]))
 
 		mono := (float64(left) + float64(right) / 2)
-		normalized := mono / maxInt6
+		normalized := mono / maxInt16
 		sumSquares += normalized * normalized
 	}
 
 	rms := math.Sqrt(sumSquares / float64(frameCount))
-	level := uint8(math.Round(rms * maxLevel))
-	if level > maxLevel {
-		level = maxLevel
-	}
+	level := min(uint8(math.Round(rms * maxLevel)), maxLevel)
 
 	a.mu.Lock()
 	defer a.mu.Unlock()

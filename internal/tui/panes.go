@@ -73,7 +73,7 @@ func (m Model) renderConsole() string {
 			if station.Artist != "" {
 				fmt.Fprintf(&s, "Artist: %s\n", station.Artist)
 			}
-			fmt.Fprintf(&s, "\n%s\n", m.equalizer())
+			fmt.Fprintf(&s, "\n%s\n", m.renderEqualizerLevels(m.status.Visualizer))
 			fmt.Fprintf(&s, "Activity: %s\n", m.progressBar(24))
 		} else if state == "idle" || state == "ready" {
 			fmt.Fprintf(&s, "\n%s\n", styles.muted.Render("Awaiting playback command."))
@@ -140,20 +140,27 @@ func (m Model) selectedStation() Station {
 	return m.stations[m.cursor]
 }
 
-func (m Model) equalizer() string {
-	levels := []int{2, 4, 3, 5, 3, 4, 2, 5}
-	if m.status.State == "connecting" {
-		levels = []int{1, 2, 1, 3, 1, 2, 1, 3}
+func (m Model) renderEqualizerLevels(levels []uint8) string {
+	if len(levels) == 0 {
+		return ""
 	}
 
-	var bars strings.Builder
+	blocks := []string{" ", "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"}
+
+	var b strings.Builder
 	for i, level := range levels {
 		if i > 0 {
-			bars.WriteString(" ")
+			b.WriteByte(' ')
 		}
-		bars.WriteString(strings.Repeat("|", level))
+
+		if int(level) >= len(blocks) {
+			level = uint8(len(blocks) - 1)
+		}
+
+		b.WriteString(blocks[level])
 	}
-	return "EQ: " + styles.success.Render(bars.String())
+
+	return b.String()
 }
 
 func (m Model) progressBar(width int) string {

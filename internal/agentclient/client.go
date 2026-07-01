@@ -24,6 +24,7 @@ type StatusResponse struct {
 	State     string `json:"state"`
 	StreamURL string `json:"stream_url,omitempty"`
 	Error     string `json:"error,omitempty"`
+	Visualizer []uint8 `json:"visualizer,omitempty"`
 }
 
 func New(baseURL string) *Client {

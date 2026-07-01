@@ -21,9 +21,9 @@ type PlayRequest struct {
 }
 
 type StatusResponse struct {
-	State     string `json:"state"`
-	StreamURL string `json:"stream_url,omitempty"`
-	Error     string `json:"error,omitempty"`
+	State      string  `json:"state"`
+	StreamURL  string  `json:"stream_url,omitempty"`
+	Error      string  `json:"error,omitempty"`
 	Visualizer []uint8 `json:"visualizer,omitempty"`
 }
 

@@ -49,7 +49,7 @@ type agentState struct {
 	streamURL string
 	err       string
 	cancel    context.CancelFunc
-	analyzer *audioanalysis.Analyzer
+	analyzer  *audioanalysis.Analyzer
 }
 
 var state = &agentState{state: "idle"}

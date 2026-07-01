@@ -7,7 +7,7 @@ import (
 )
 
 type AnalyzerReader struct {
-	src io.Reader
+	src      io.Reader
 	analyzer *audioanalysis.Analyzer
 }
 
@@ -17,7 +17,7 @@ func newAnalyzerReader(src io.Reader, analyzer *audioanalysis.Analyzer) io.Reade
 	}
 
 	return &AnalyzerReader{
-		src: src,
+		src:      src,
 		analyzer: analyzer,
 	}
 }

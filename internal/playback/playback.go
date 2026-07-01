@@ -7,13 +7,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hajimehoshi/go-mp3"
+	"zoneout/internal/audioanalysis"
 	"zoneout/internal/oto"
+
+	"github.com/hajimehoshi/go-mp3"
 )
 
 var otoPlayerManager = &oto.PlayerManager{}
 
-func Play(ctx context.Context, streamURL string) error {
+func Play(ctx context.Context, streamURL string, analyzer *audioanalysis.Analyzer) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, streamURL, nil)
 	if err != nil {
 		return err
@@ -40,13 +42,16 @@ func Play(ctx context.Context, streamURL string) error {
 	}
 	log.Println("MP3 decode is ready")
 
+	log.Println("Analyzing decoded samples")
+	reader := newAnalyzerReader(decoded, analyzer)
+
 	playerManager, err := otoPlayerManager.EnsureContext(decoded.SampleRate())
 	if err != nil {
-		 return err
+		return err
 	}
-	player, err := playerManager.NewPlayer(decoded)
+	player, err := playerManager.NewPlayer(reader)
 	if err != nil {
-		 return err
+		return err
 	}
 	log.Println("audio player is ready")
 

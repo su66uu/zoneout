@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"zoneout/internal/audioanalysis"
 	"zoneout/internal/playback"
 
 	"github.com/go-chi/chi/v5"
@@ -50,6 +51,7 @@ type agentState struct {
 }
 
 var state = &agentState{state: "idle"}
+const barCount = 8
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "--ensure-running" {
@@ -93,6 +95,8 @@ func playMusicHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "stream_url is required", http.StatusBadRequest)
 		return
 	}
+
+	analyzer := audioanalysis.NewAnalyzer(barCount)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
